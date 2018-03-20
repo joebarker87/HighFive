@@ -68,6 +68,27 @@ void generate2D(std::vector<std::vector<T> >& vec, size_t x, size_t y,
     }
 }
 
+template <typename T, std::size_t N, std::size_t O, typename Func>
+void generate2D(std::array<std::array<T, O>, N>& arr, size_t x, size_t y,
+                Func& func) {
+  for (size_t i = 0; i < x; i++) {
+    for (size_t j = 0; j < y; j++) {
+      arr[i][j] = func();
+    }
+  }
+}
+
+template <typename T, std::size_t N, typename Func>
+void generate2D(std::vector<std::array<T, N>>& vec, size_t x, size_t y,
+                Func& func) {
+  vec.resize(x);
+  for (size_t i = 0; i < x; i++) {
+    for (size_t j = 0; j < y; j++) {
+      vec[i][j] = func();
+    }
+  }
+}
+
 template <typename T>
 struct ContentGenerate {
     ContentGenerate(T init_val = T(0), T inc_val = T(1) + T(1) / T(10))
@@ -750,6 +771,89 @@ void readWriteArrayTest() {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(readWriteArray, T, numerical_test_types) {
   readWriteArrayTest<T>();
+}
+
+template <typename T>
+void readWriteArray2DTest() {
+  using namespace HighFive;
+
+  std::ostringstream filename;
+  filename << "h5_rw_arr_2d_" << typeid(T).name() << "_test.h5";
+
+  const size_t x_size = 10;
+  const size_t y_size = 10;
+  const std::string DATASET_NAME("dset");
+  typename std::array<std::array<T, y_size>, x_size> arr;
+
+  // Create a new file using the default property lists.
+  File file(filename.str(), File::ReadWrite | File::Create | File::Truncate);
+
+  ContentGenerate<T> generator;
+
+  generate2D(arr, x_size, y_size, generator);
+
+  // Create a dataset with double precision floating points
+  DataSet dataset = file.createDataSet<T>(DATASET_NAME, DataSpace::From(arr));
+
+  dataset.write(arr);
+
+  typename std::array<std::array<T, y_size>, x_size> result;
+
+  dataset.read(result);
+
+  for (size_t i = 0; i < x_size; ++i) {
+    for (size_t j = 0; j < y_size; ++j) {
+      BOOST_CHECK_EQUAL(result[i][j], arr[i][j]);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(readWriteArray2D, T, numerical_test_types) {
+
+  readWriteArray2DTest<T>();
+}
+
+template <typename T>
+void readWriteVectorArrayTest() {
+  using namespace HighFive;
+
+  std::ostringstream filename;
+  filename << "h5_rw_vec_arr_" << typeid(T).name() << "_test.h5";
+
+  const size_t x_size = 10;
+  const size_t y_size = 10;
+  const std::string DATASET_NAME("dset");
+  typename std::vector<std::array<T, y_size>> vec(x_size);
+
+  // Create a new file using the default property lists.
+  File file(filename.str(), File::ReadWrite | File::Create | File::Truncate);
+
+  ContentGenerate<T> generator;
+
+  generate2D(vec, x_size, y_size, generator);
+
+  // Create a dataset with double precision floating points
+  DataSet dataset = file.createDataSet<T>(DATASET_NAME, DataSpace::From(vec));
+
+  dataset.write(vec);
+
+  typename std::vector<std::array<T, y_size>> result;
+
+  dataset.read(result);
+
+  BOOST_CHECK_EQUAL(vec.size(), x_size);
+  BOOST_CHECK_EQUAL(result.size(), x_size);
+
+  for (size_t i = 0; i < x_size; ++i) {
+    for (size_t j = 0; j < y_size; ++j) {
+      BOOST_CHECK_EQUAL(result[i][j], vec[i][j]);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(readWriteVectorArray, T, numerical_test_types) {
+
+  readWriteVectorArrayTest<T>();
 }
 
 #ifdef H5_USE_BOOST

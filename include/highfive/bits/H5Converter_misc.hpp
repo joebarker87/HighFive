@@ -95,6 +95,41 @@ vectors_to_single_buffer(const std::array<T, N>& arr_multi_dim,
   }
 }
 
+
+// copy single buffer to multi dimensional vector, following dimensions
+// specified
+template <typename T, std::size_t N>
+inline typename std::vector<T>::iterator
+single_buffer_to_vectors(typename std::vector<T>::iterator begin_buffer,
+                         typename std::vector<T>::iterator end_buffer,
+                         const std::vector<size_t>& dims, size_t current_dim,
+                         std::array<T, N>& vec_single_dim) {
+  const size_t n_elems = dims[current_dim];
+  typename std::vector<T>::iterator end_copy_iter =
+          std::min(begin_buffer + n_elems, end_buffer);
+  std::copy(begin_buffer, end_copy_iter, vec_single_dim.begin());
+//  vec_single_dim.assign(begin_buffer, end_copy_iter);
+  return end_copy_iter;
+}
+
+template <typename T, typename U, std::size_t N>
+inline typename std::vector<T>::iterator
+single_buffer_to_vectors(typename std::vector<T>::iterator begin_buffer,
+                         typename std::vector<T>::iterator end_buffer,
+                         const std::vector<size_t>& dims, size_t current_dim,
+                         std::array<U, N>& vec_multi_dim) {
+
+  const size_t n_elems = dims[current_dim];
+  assert(vec_multi_dim.size() == n_elems);
+
+  for (typename std::array<U, N>::iterator it = vec_multi_dim.begin();
+       it < vec_multi_dim.end(); ++it) {
+    begin_buffer = single_buffer_to_vectors(begin_buffer, end_buffer, dims,
+            current_dim + 1, *it);
+  }
+  return begin_buffer;
+}
+
 // copy single buffer to multi dimensional vector, following dimensions
 // specified
 template <typename T>
@@ -116,47 +151,13 @@ single_buffer_to_vectors(typename std::vector<T>::iterator begin_buffer,
                          typename std::vector<T>::iterator end_buffer,
                          const std::vector<size_t>& dims, size_t current_dim,
                          std::vector<U>& vec_multi_dim) {
-
-    const size_t n_elems = dims[current_dim];
-    vec_multi_dim.resize(n_elems);
-
-    for (typename std::vector<U>::iterator it = vec_multi_dim.begin();
-         it < vec_multi_dim.end(); ++it) {
-        begin_buffer = single_buffer_to_vectors(begin_buffer, end_buffer, dims,
-                                                current_dim + 1, *it);
-    }
-    return begin_buffer;
-}
-
-// copy single buffer to multi dimensional vector, following dimensions
-// specified
-template <typename T, std::size_t N>
-inline typename std::array<T, N>::iterator
-single_buffer_to_vectors(typename std::array<T, N>::iterator begin_buffer,
-                         typename std::array<T, N>::iterator end_buffer,
-                         const std::vector<size_t>& dims, size_t current_dim,
-                         std::array<T, N>& vec_single_dim) {
   const size_t n_elems = dims[current_dim];
-  typename std::vector<T>::iterator end_copy_iter =
-          std::min(begin_buffer + n_elems, end_buffer);
-  vec_single_dim.assign(begin_buffer, end_copy_iter);
-  return end_copy_iter;
-}
+  vec_multi_dim.resize(n_elems);
 
-template <typename T, typename U, std::size_t N, std::size_t O>
-inline typename std::array<T, N>::iterator
-single_buffer_to_vectors(typename std::array<T, N>::iterator begin_buffer,
-                         typename std::array<T, N>::iterator end_buffer,
-                         const std::vector<size_t>& dims, size_t current_dim,
-                         std::array<U, O>& vec_multi_dim) {
-
-  const size_t n_elems = dims[current_dim];
-  assert(vec_multi_dim.size() == n_elems);
-
-  for (typename std::array<U, O>::iterator it = vec_multi_dim.begin();
+  for (typename std::vector<U>::iterator it = vec_multi_dim.begin();
        it < vec_multi_dim.end(); ++it) {
-    begin_buffer = single_buffer_to_vectors(begin_buffer, end_buffer, dims,
-            current_dim + 1, *it);
+      begin_buffer = single_buffer_to_vectors(begin_buffer, end_buffer, dims,
+                                              current_dim + 1, *it);
   }
   return begin_buffer;
 }
@@ -396,7 +397,7 @@ struct data_converter<std::array<T, N>,
     }
 
     inline void process_result(std::array<T, N>& vec) {
-      single_buffer_to_vectors<typename type_of_array<T>::type, T>(
+      single_buffer_to_vectors<typename type_of_array<T>::type, T, N>(
               _vec_align.begin(), _vec_align.end(), _dims, 0, vec);
     }
 
