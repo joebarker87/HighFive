@@ -13,6 +13,7 @@
 #include <string>
 #include <typeinfo>
 #include <vector>
+#include <array>
 #include <random>
 
 #ifdef HIGHFIVE_CPP11_ENABLE
@@ -709,6 +710,46 @@ BOOST_AUTO_TEST_CASE(datasetOffset) {
     ds.write(data);
     DataSet ds_read = file.getDataSet(dsetname);
     BOOST_CHECK(ds_read.getOffset() > 0);
+}
+
+template <typename T>
+void readWriteArrayTest() {
+  using namespace HighFive;
+
+  std::ostringstream filename;
+  filename << "h5_rw_arr_" << typeid(T).name() << "_test.h5";
+
+  std::srand((unsigned int)std::time(0));
+  const size_t x_size = 800;
+  const std::string DATASET_NAME("dset");
+  typename std::array<T, x_size> arr;
+
+  ContentGenerate<T> generator;
+  std::generate(arr.begin(), arr.end(), generator);
+
+  // Create a new file using the default property lists.
+  File file(filename.str(), File::ReadWrite | File::Create | File::Truncate);
+
+  // Create a dataset with double precision floating points
+  DataSet dataset = file.createDataSet<T>(DATASET_NAME, DataSpace::From(arr));
+
+  dataset.write(arr);
+
+  typename std::array<T, x_size> result;
+
+  dataset.read(result);
+
+  BOOST_CHECK_EQUAL(arr.size(), x_size);
+  BOOST_CHECK_EQUAL(result.size(), x_size);
+
+  for (size_t i = 0; i < x_size; ++i) {
+//     std::cout << result[i] << " " << arr[i] << "  ";
+    BOOST_CHECK_EQUAL(result[i], arr[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(readWriteArray, T, numerical_test_types) {
+  readWriteArrayTest<T>();
 }
 
 #ifdef H5_USE_BOOST
