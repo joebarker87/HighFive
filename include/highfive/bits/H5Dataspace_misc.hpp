@@ -121,6 +121,11 @@ inline DataSpace DataSpace::From(const std::vector<Value>& container) {
     return DataSpace(details::get_dim_vector<Value>(container));
 }
 
+template <typename Value, std::size_t N>
+inline DataSpace DataSpace::From(const std::array<Value, N>& container) {
+    return DataSpace(details::get_dim_vector<Value>(container));
+}
+
 #ifdef H5_USE_BOOST
 template <typename Value, std::size_t Dims>
 inline DataSpace

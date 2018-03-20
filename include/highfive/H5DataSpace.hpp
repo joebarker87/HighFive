@@ -83,6 +83,8 @@ class DataSpace : public Object {
     template <typename Value>
     static DataSpace From(const std::vector<Value>& vec);
 
+    template <typename Value, std::size_t N>
+    static DataSpace From(const std::array<Value, N>& arr);
 
 #ifdef H5_USE_BOOST
     template <typename Value, std::size_t Dims>

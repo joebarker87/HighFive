@@ -16,6 +16,7 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <array>
 
 #ifdef H5_USE_BOOST
 #include <boost/multi_array.hpp>
@@ -57,6 +58,11 @@ struct array_dims<T[N]> {
     static const size_t value = 1 + array_dims<T>::value;
 };
 
+template <typename T, std::size_t N>
+struct array_dims<std::array<T,N> > {
+    static const size_t value = 1 + array_dims<T>::value;
+};
+
 #ifdef H5_USE_BOOST
 template <typename T, std::size_t Dims>
 struct array_dims<boost::multi_array<T, Dims> > {
@@ -76,10 +82,23 @@ void get_dim_vector_rec(const T& vec, std::vector<size_t>& dims) {
     (void)vec;
 }
 
+template <typename T, std::size_t N>
+void get_dim_vector_rec(const std::array<T, N>& arr, std::vector<size_t>& dims) {
+    dims.push_back(arr.size());
+    get_dim_vector_rec(arr[0], dims);
+}
+
 template <typename T>
 void get_dim_vector_rec(const std::vector<T>& vec, std::vector<size_t>& dims) {
     dims.push_back(vec.size());
     get_dim_vector_rec(vec[0], dims);
+}
+
+template <typename T, std::size_t N>
+std::vector<size_t> get_dim_vector(const std::array<T, N>& arr) {
+    std::vector<size_t> dims;
+    get_dim_vector_rec(arr, dims);
+    return dims;
 }
 
 template <typename T>
@@ -97,6 +116,11 @@ struct type_of_array {
 
 template <typename T>
 struct type_of_array<std::vector<T> > {
+    typedef typename type_of_array<T>::type type;
+};
+
+template <typename T, std::size_t N>
+struct type_of_array<std::array<T, N> > {
     typedef typename type_of_array<T>::type type;
 };
 
@@ -130,6 +154,11 @@ struct is_container {
 
 template <typename T>
 struct is_container<std::vector<T> > {
+    static const bool value = true;
+};
+
+template <typename T, std::size_t N>
+struct is_container<std::array<T, N> > {
     static const bool value = true;
 };
 
